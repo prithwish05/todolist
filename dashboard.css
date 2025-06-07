@@ -1,0 +1,248 @@
+
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0; background: #f4f6f8;
+  }
+  .sidebar {
+    width: 220px; 
+    background: #222; 
+    color: white; 
+    height: 100vh; 
+    position: fixed; 
+    padding: 20px;
+    box-sizing: border-box;
+  }
+  .profile img { width: 80px; border-radius: 50%; }
+  .profile p { margin: 10px 0 5px; font-size: 20px; font-weight: bold; }
+  .profile small { color: #bbb; }
+  .logout-btn {
+    margin-top: 20px;
+    width: 100%;
+    padding: 10px;
+    background: #c33;
+    border: none;
+    color: white;
+    cursor: pointer;
+    border-radius: 5px;
+    font-weight: bold;
+  }
+  nav.sidebar-nav a {
+    display: block;
+    color: #ddd;
+    text-decoration: none;
+    padding: 10px 5px;
+    border-radius: 4px;
+    margin-bottom: 5px;
+  }
+  nav.sidebar-nav a:hover {
+    background: #444;
+    color: white;
+  }
+  .main-content {
+    margin-left: 240px;
+    padding: 20px;
+  }
+  header {
+    margin-bottom: 30px;
+  }
+  header h1 {
+    margin: 0 0 10px 0;
+  }
+  header .date {
+    color: #666;
+  }
+  .tabs {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+  }
+  .tab {
+    background: #ddd;
+    padding: 10px 20px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-weight: 600;
+    color: #333;
+    user-select: none;
+    transition: background-color 0.3s, color 0.3s;
+    text-decoration: none;
+  }
+  .tab.active {
+    background: #2196F3;
+    color: white;
+  }
+  .tab .count {
+    background: #fff;
+    color: #2196F3;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 50%;
+    margin-left: 8px;
+    font-size: 0.9em;
+    vertical-align: middle;
+  }
+  .task-list {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    min-height: 350px;
+    box-shadow: 0 0 10px #ccc;
+  }
+  .task-item {
+    border-bottom: 1px solid #eee;
+    padding: 10px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .task-item:last-child {
+    border-bottom: none;
+  }
+  .task-info {
+    max-width: 70%;
+  }
+  .task-name {
+    font-weight: bold;
+    font-size: 1.1em;
+  }
+  .task-desc {
+    color: #555;
+    margin-top: 5px;
+  }
+  .task-date {
+    color: #999;
+    font-size: 0.9em;
+  }
+  .task-actions button {
+    margin-left: 8px;
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    color: white;
+  }
+  .btn-edit { background: #4CAF50; }
+  .btn-delete { background: #f44336; }
+  .btn-complete { background: #2196F3; }
+  .completed {
+    background: #d4edda;
+    padding: 10px 15px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+  }
+  .task-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    font-size: 14px;
+  }
+  
+  .task-table th {
+    background-color: #2196F3;
+    color: white;
+    padding: 12px 10px;
+    text-align: left;
+    font-weight: 500;
+  }
+  
+  .task-table td {
+    padding: 12px 10px;
+    border-bottom: 1px solid #e0e0e0;
+    vertical-align: middle;
+  }
+  
+  .task-table tr:hover td {
+    background-color: #f5f5f5;
+  }
+  
+  .task-table tr:last-child td {
+    border-bottom: none;
+  }
+  
+  .action-btn {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85em;
+    color: white;
+    text-align: center;
+    display: inline-block;
+    width: 80px;
+    transition: all 0.3s ease;
+  }
+  
+  .action-btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+  
+  .edit-btn { 
+    background: #4CAF50; 
+  }
+  
+  .delete-btn { 
+    background: #f44336; 
+  }
+  
+  .complete-btn { 
+    background: #2196F3; 
+  }
+  
+  .task-name {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 4px;
+  }
+  
+  .task-desc {
+    color: #666;
+    font-size: 0.9em;
+  }
+  
+  .task-date {
+    color: #555;
+    font-size: 0.9em;
+  }
+
+  #editTaskModal form input,
+#editTaskModal form textarea {
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 5px;
+    box-sizing: border-box;
+}
+
+#editTaskModal form textarea {
+    height: 80px;
+    resize: vertical;
+}
+.sorting-options {
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+.priority-high {
+    color: #dc3545;
+    font-weight: bold;
+    background: #ffebee;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+}
+
+.priority-medium {
+    color: #fd7e14;
+    background: #fff3e0;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+}
+
+.priority-low {
+    color: #28a745;
+    background: #e8f5e9;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+}

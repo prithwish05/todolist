@@ -1,0 +1,76 @@
+/* :root {
+    --cream: #FDFBD4;
+    --light-pink: #e9b1b1;
+    --light-green: #eefcf1;
+    --dark-gray: #2c2c2c;
+    --light-gray: #e3e3e3;
+    --border-color: #d9d9d9;
+} */
+
+body {
+    font-family: 'Inter', sans-serif;
+    color: #1e1e1e;
+}
+
+.bg-color {
+    background-color: #756f0d !important;
+}
+
+.bg-light-pink {
+    background-color: #e9b1b1 !important;
+}
+
+.bg-light-green {
+    background-color: #eefcf1 !important;
+}
+
+.highlight {
+  color: #2e3cc9 !important;
+}
+
+
+
+
+.hero {
+    background: linear-gradient(rgba(255,255,255,0.5), rgba(255,255,255,0.5)), url('img/back1.jpg');
+    background-size: cover;
+    background-position: center;
+    
+    display: flex;
+    align-items: center;
+}
+
+.card-title {
+    font-size: 18px; /* Adjust size as needed */
+    font-weight: bold; /* Make text bold */
+    text-align: center; /* Center the title */
+    margin-top: 15px; /* Add spacing between image and title */
+    color: #333; /* Adjust color */
+}
+
+/* Ensure the card looks clean */
+.card {
+    border: none; /* Remove default card border */
+    border-radius: 10px; /* Add smooth rounded corners */
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1); /* Add a soft shadow */
+    transition: all 0.3s ease-in-out;
+}
+
+/* Hover effect for cards */
+.card:hover {
+    transform: translateY(-5px); /* Slight lift on hover */
+    box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+
+.card {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+}
+
+@media (max-width: 768px) {
+    .hero {
+        min-height: 300px;
+    }
+}
+
