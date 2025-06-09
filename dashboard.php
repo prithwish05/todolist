@@ -1,20 +1,35 @@
 <?php
-/*------------------------------------------
-  INITIALIZATION & CONFIGURATION
-------------------------------------------*/
-ini_set("display_errors", "1");          // Enable error display
-error_reporting(E_ALL);                  // Report all errors
-session_start();                         // Start session management
-date_default_timezone_set('Asia/Kolkata'); // Set default timezone
-include("connect.php");                  // Include database connection
+// INITIALIZATION & CONFIGURATION
+ini_set("display_errors", "1");
+error_reporting(E_ALL);
+date_default_timezone_set('Asia/Kolkata');
 
-/*------------------------------------------
-  DEFAULT VARIABLES
-------------------------------------------*/
-$userName = "User";       // Default user name
-$section = 'today';       // Default section
-$email = '';              // Initialize email
+// First validate JWT
+require 'validate_jwt.php';
+try {
+    $user = validateJWT();
+    $email = $user->email;
+    $userName = $user->name;
+    $userId = $user->user_id;
+} catch (Exception $e) {
+    // If JWT validation fails, redirect to login
+    header("Location: index.php?error=session_expired");
+    exit();
+}
 
+// Also check session for additional security
+session_start();
+if (!isset($_SESSION['user_id'])) {
+    header("Location: index.php?error=session_expired");
+    exit();
+}
+
+include("connect.php");
+
+// DEFAULT VARIABLES
+$userName = $_SESSION['name'] ?? 'User';
+$section = 'today';
+$email = $_SESSION['email'] ?? '';
 /*------------------------------------------
   PAGINATION CONFIGURATION
 ------------------------------------------*/
@@ -27,7 +42,7 @@ $offset = ($page - 1) * $perPage;
   AUTHENTICATION CHECK
 ------------------------------------------*/
 if (!isset($_SESSION['email'])) {
-    header("Location: index.php");
+    header("Location: dashboard.php");
     exit();
 }
 
@@ -491,6 +506,9 @@ $totalPages = ceil($totalTasks / $perPage);
         <a href="dashboard.php?section=due_tasks" class="tab <?= $section === 'due_tasks' ? 'active' : '' ?>">
             All Due Tasks <span class="count"><?= $countDueTasks ?></span>
         </a>
+        <button id="generate-summary-btn" class="tab" style="background-color: #4CAF50; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-left: 10px;">
+        Generate Daily Summary
+        </button>
     </div>
 
     <!-- ACTION BUTTONS ROW -->
@@ -861,7 +879,7 @@ $totalPages = ceil($totalTasks / $perPage);
 
 
 
-    <button id="generate-summary-btn" class="btn btn-primary">Generate Daily Summary</button>
+    <!-- <button id="generate-summary-btn" class="btn btn-primary">Generate Daily Summary</button> -->
 
     <!-- <div id="summary-modal" class="modal">
         <div class="modal-content">
@@ -995,8 +1013,6 @@ $totalPages = ceil($totalTasks / $perPage);
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const summaryBtn = document.getElementById('generate-summary-btn');
-    const summaryModal = document.getElementById('summary-modal');
-    const copyBtn = document.getElementById('copy-summary');
     
     if (summaryBtn) {
         summaryBtn.addEventListener('click', async function() {
@@ -1004,39 +1020,70 @@ document.addEventListener('DOMContentLoaded', function() {
             summaryBtn.textContent = 'Generating...';
             
             try {
+                console.log('Making request to generate_summary.php');
                 const response = await fetch('generate_summary.php');
                 
-                // First check if response is OK
+                console.log('Response status:', response.status);
+                
                 if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Server response error:', errorText);
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
-                // Try to parse JSON
-                let data;
-                try {
-                    data = await response.json();
-                } catch (e) {
-                    // If JSON parsing fails, get the raw text to debug
-                    const text = await response.text();
-                    console.error('Invalid JSON response:', text);
-                    throw new Error('Invalid server response');
-                }
+                const data = await response.json();
+                console.log('Response data:', data);
                 
                 if (!data.success) {
                     throw new Error(data.error || 'Failed to generate summary');
                 }
                 
+                // Create modal dynamically if it doesn't exist
+                let modal = document.getElementById('summary-modal');
+                if (!modal) {
+                    modal = document.createElement('div');
+                    modal.id = 'summary-modal';
+                    modal.className = 'modal';
+                    modal.innerHTML = `
+                        <div class="modal-content">
+                            <span class="close-summary">&times;</span>
+                            <h3>Your Daily Summary</h3>
+                            <div id="summary-content"></div>
+                            <button id="copy-summary" class="btn btn-secondary">Copy Summary</button>
+                        </div>
+                    `;
+                    document.body.appendChild(modal);
+                }
+                
                 document.getElementById('summary-content').innerText = data.summary;
-                summaryModal.style.display = 'block';
+                modal.style.display = 'block';
+                
+                // Add close functionality
+                document.querySelector('.close-summary').onclick = function() {
+                    modal.style.display = 'none';
+                };
+                
+                // Add copy functionality
+                document.getElementById('copy-summary').onclick = function() {
+                    navigator.clipboard.writeText(data.summary)
+                        .then(() => {
+                            this.textContent = 'Copied!';
+                            setTimeout(() => {
+                                this.textContent = 'Copy Summary';
+                            }, 2000);
+                        });
+                };
+                
             } catch (error) {
-                console.error('Error:', error);
-                alert('Error generating summary. Please check console for details.');
+                console.error('Full error:', error);
+                alert('Error: ' + error.message + '\nCheck console for details.');
             } finally {
                 summaryBtn.disabled = false;
                 summaryBtn.textContent = 'Generate Daily Summary';
             }
         });
     }
+
     
     // Close modal
     const closeModal = document.querySelector('.close-summary');
@@ -1100,6 +1147,62 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 });
+
+
+// Request notification permission when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if browser supports notifications
+    if (!("Notification" in window)) {
+        console.log("This browser does not support desktop notification");
+    } else if (Notification.permission !== "denied") {
+        // Request permission from user
+        Notification.requestPermission().then(permission => {
+            if (permission === "granted") {
+                console.log("Notification permission granted");
+                checkDueTasks(); // Check for due tasks immediately
+                setInterval(checkDueTasks, 60000); // Then check every minute
+            }
+        });
+    }
+});
+
+// Function to check for due tasks and show notifications
+function checkDueTasks() {
+    fetch('check_due_tasks.php')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.tasks.length > 0) {
+                data.tasks.forEach(task => {
+                    showTaskNotification(task);
+                });
+            }
+        })
+        .catch(error => console.error('Error:', error));
+}
+
+// Function to display a notification for a task
+function showTaskNotification(task) {
+    const now = new Date();
+    const dueDate = new Date(task.due_date);
+    const timeDiff = dueDate - now;
+    const hoursDiff = Math.floor(timeDiff / (1000 * 60 * 60));
+    
+    let notificationText;
+    if (hoursDiff <= 0) {
+        notificationText = `"${task.task_name}" is due now!`;
+    } else if (hoursDiff <= 24) {
+        notificationText = `"${task.task_name}" is due in ${hoursDiff} hour${hoursDiff !== 1 ? 's' : ''}`;
+    } else {
+        const daysDiff = Math.floor(hoursDiff / 24);
+        notificationText = `"${task.task_name}" is due in ${daysDiff} day${daysDiff !== 1 ? 's' : ''}`;
+    }
+    
+    new Notification("Task Reminder", {
+        body: notificationText,
+        icon: "/taskroom/img/notification-icon.png" // Add your icon path
+    });
+}
+
 </script>
 
 
