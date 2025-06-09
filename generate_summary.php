@@ -1,53 +1,85 @@
 <?php
-// Ensure no output is sent before headers
-if (ob_get_level()) ob_end_clean();
+header('Content-Type: application/json');
 
-// Set strict content type first
-header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Origin: *');
+// Database connection
+include("connect.php");
 
-try {
-    // Disable error display in production
-    ini_set('display_errors', 0);
-    error_reporting(E_ALL);
-    
-    // Include required files
-    require_once 'load_env.php';
-    require_once 'connect.php';
-    require_once 'ai_summary.php';
-    
-    // Start session securely
-    if (session_status() === PHP_SESSION_NONE) {
-        session_start([
-            'cookie_secure' => true,
-            'cookie_httponly' => true
-        ]);
-    }
+session_start();
 
-    if (!isset($_SESSION['email'])) {
-        throw new Exception('Authentication required');
-    }
-
-    $summarizer = new TaskSummarizer($conn);
-    $summary = $summarizer->generateDailySummary($_SESSION['email']);
-    
-    // Ensure no output before this
-    echo json_encode([
-        'success' => true,
-        'summary' => $summary
-    ]);
-    exit;
-
-} catch (Exception $e) {
-    // Log the error for debugging
-    error_log('Summary generation error: ' . $e->getMessage());
-    
-    // Return clean JSON error
-    http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'error' => 'Failed to generate summary'
-    ]);
+if (!isset($_SESSION['email'])) {
+    echo json_encode(['success' => false, 'error' => 'Not authenticated']);
     exit;
 }
-?>
+
+$email = $_SESSION['email'];
+
+try {
+    // Get counts from database
+    $todayCount = getCount($conn, $email, "SELECT COUNT(*) as count FROM tasks WHERE user_email = ? AND due_date = CURDATE()");
+    $upcomingCount = getCount($conn, $email, "SELECT COUNT(*) as count FROM tasks WHERE user_email = ? AND due_date > CURDATE()");
+    $completedCount = getCount($conn, $email, "SELECT COUNT(*) as count FROM completed_tasks WHERE user_email = ? AND DATE(completed_at) = CURDATE()");
+    
+    // Generate summary text
+    $summary = "📊 Daily Task Summary - " . date('F j, Y') . "\n\n";
+    $summary .= "✅ Completed tasks today: $completedCount\n";
+    $summary .= "📅 Today's tasks: $todayCount\n";
+    $summary .= "⏳ Upcoming tasks: $upcomingCount\n\n";
+    
+    // Get high priority tasks
+    $stmt = $conn->prepare("SELECT task_name, due_date FROM tasks WHERE user_email = ? AND priority = 'High' AND due_date >= CURDATE() ORDER BY due_date LIMIT 3");
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $highPriority = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    
+    if (!empty($highPriority)) {
+        $summary .= "⚠️ High Priority Tasks:\n";
+        foreach ($highPriority as $task) {
+            $dueDate = date('M j', strtotime($task['due_date']));
+            $summary .= "• {$task['task_name']} (Due: $dueDate)\n";
+        }
+        $summary .= "\n";
+    }
+    
+    // Get today's completed tasks
+    $stmt = $conn->prepare("SELECT task_name, description, completed_at FROM completed_tasks WHERE user_email = ? AND DATE(completed_at) = CURDATE() ORDER BY completed_at DESC");
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $completedTasks = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    
+    if (!empty($completedTasks)) {
+        $summary .= "🎉 Tasks Completed Today:\n";
+        foreach ($completedTasks as $task) {
+            $time = date('g:i a', strtotime($task['completed_at']));
+            $summary .= "• {$task['task_name']}";
+            if (!empty($task['description'])) {
+                $summary .= ": {$task['description']}";
+            }
+            $summary .= " (Completed at $time)\n";
+        }
+    } else {
+        $summary .= "No tasks completed today yet. Keep going! 💪\n";
+    }
+    
+    echo json_encode([
+        'success' => true,
+        'summary' => $summary,
+        'completed_tasks' => $completedTasks // Optional: send the data separately if needed
+    ]);
+    
+} catch (Exception $e) {
+    echo json_encode([
+        'success' => false,
+        'error' => $e->getMessage()
+    ]);
+}
+
+// Reuse your getCount function
+function getCount($conn, $email, $query) {
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $count = $res->fetch_assoc()['count'] ?? 0;
+    $stmt->close();
+    return $count;
+}
